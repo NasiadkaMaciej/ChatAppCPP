@@ -6,3 +6,4 @@ Clean upgrade
 Improve layout
 server?
 readme
+Allow other servers?
