@@ -1,0 +1,8 @@
+Build manual 
+Docs 
+ncurses 
+cmake
+Clean upgrade
+Improve layout
+server?
+readme
