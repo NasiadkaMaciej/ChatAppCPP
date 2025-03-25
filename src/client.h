@@ -1,38 +1,33 @@
-#ifndef CHAT_CLIENT_H
-#define CHAT_CLIENT_H
+#pragma once
 
-#include <iostream>
+#include "chatui.h"
+#include <functional>
+#include <ixwebsocket/IXWebSocket.h>
+#include <memory>
 #include <string>
 #include <vector>
-#include <ixwebsocket/IXWebSocket.h>
-#include <nlohmann/json.hpp>
 
-using json = nlohmann::json;
-
-// UI Functions
-void printRooms(const std::vector<std::string>& rooms);
-void printHelp();
-
-// Chat Client Class
 class ChatClient {
-public:
-    ChatClient(const std::string& url);
-    
-    bool connect();
-    void disconnect();
-    bool joinRoom(const std::string& username, const std::string& roomName);
-    void run();
+  public:
+	ChatClient(const std::string& url);
+	~ChatClient();
+	bool connect();
+	bool sendMessage(const std::string& message);
+	void requestUsers();
+	void run();
 
-private:
-    ix::WebSocket webSocket;
-    std::string username;
-    std::string currentRoom;
-    std::vector<std::string> availableRooms;
-    std::vector<std::string> usersInRoom;
-    bool connected;
+  private:
+	ix::WebSocket webSocket;
+	std::string username;
+	std::string url;
+	std::string currentRoom;
+	bool connected;
+	std::unique_ptr<ChatUI> ui;
+	std::vector<std::string> users;
 
-    void setupCallbacks();
-    bool processCommand(const std::string& command);
+	// Message handlers
+	void handleMessage(const std::string& message);
+	void handleCommand(const std::string& command);
+	void handleWebSocketMessage(const ix::WebSocketMessagePtr& msg);
+	void joinRoom(const std::string& roomName, const std::string& username);
 };
-
-#endif // CHAT_CLIENT_H

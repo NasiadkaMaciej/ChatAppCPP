@@ -1,161 +1,214 @@
 #include "client.h"
-#include <chrono>
-#include <thread>
+#include <iostream>
+#include <nlohmann/json.hpp>
+#include <sstream>
 
-// UI Functions Implementation
-void printRooms(const std::vector<std::string> &rooms) {
-	std::cout << "\n=== Available Rooms ===\n";
-	if (rooms.empty())
-		std::cout << "No rooms available. Create a new one!\n";
-	else
-		for (size_t i = 0; i < rooms.size(); i++)
-			std::cout << i + 1 << ". " << rooms[i] << "\n";
-	std::cout << "=======================\n";
+using json = nlohmann::json;
+
+ChatClient::ChatClient(const std::string& url)
+  : url(url)
+  , connected(false)
+  , ui(std::make_unique<ChatUI>()) {}
+
+ChatClient::~ChatClient() {
+	webSocket.stop();
 }
-
-void printHelp() {
-	std::cout << "\n====== Commands ======\n";
-	std::cout << "/help - Show this help message\n";
-	std::cout << "/users - Show users in the current room\n";
-	std::cout << "/exit - Exit the chat\n";
-	std::cout << "======================\n";
-}
-
-// ChatClient Implementation
-ChatClient::ChatClient(const std::string &url) : connected(false) { webSocket.setUrl(url); }
 
 bool ChatClient::connect() {
+	ui->showStatus("Connecting to server...");
+
+	webSocket.setUrl(url);
+
+	// Set up the message handler
+	webSocket.setOnMessageCallback(
+	  [this](const ix::WebSocketMessagePtr& msg) { handleWebSocketMessage(msg); });
+
 	webSocket.start();
 
-	// Wait for connection to be established (timeout after 5 seconds)
+	// Wait for connection
 	for (int i = 0; i < 50; i++) {
-		if (webSocket.getReadyState() == ix::ReadyState::Open)
+		if (webSocket.getReadyState() == ix::ReadyState::Open) {
+			connected = true;
 			return true;
+		}
 		std::this_thread::sleep_for(std::chrono::milliseconds(100));
 	}
 
 	return false;
 }
 
-void ChatClient::disconnect() {
-	webSocket.stop();
-	std::cout << "Disconnected.\n";
-}
-
-bool ChatClient::joinRoom(const std::string &username, const std::string &roomName) {
-	this->username = username;
-	this->currentRoom = roomName;
-
-	json joinMsg = {{"type", "joinRoom"}, {"data", {{"username", username}, {"room", roomName}}}};
-
-	webSocket.send(joinMsg.dump());
-	connected = true;
-	return true;
-}
-
-void ChatClient::setupCallbacks() {
-	webSocket.setOnMessageCallback([this](const ix::WebSocketMessagePtr &msg) {
-		if (msg->type == ix::WebSocketMessageType::Message) {
+// Add a new method to handle WebSocket messages
+void ChatClient::handleWebSocketMessage(const ix::WebSocketMessagePtr& msg) {
+	if (msg->type == ix::WebSocketMessageType::Message) {
+		try {
 			json received = json::parse(msg->str);
 
 			if (received.contains("type")) {
 				std::string type = received["type"];
 
 				if (type == "roomList") {
-					availableRooms.clear();
-					for (auto &room : received["data"])
-						availableRooms.push_back(room);
+					// Handle room list update
+					std::vector<std::string> rooms;
+					for (auto& room : received["data"])
+						rooms.push_back(room);
 
-					if (!connected) {
-						printRooms(availableRooms);
-
-						// Prompt for room selection or creation
-						if (!availableRooms.empty())
-							std::cout << "Enter room number to join or type a new room name: ";
-						else
-							std::cout << "Enter a new room name: ";
-
-						std::string roomInput;
-						std::getline(std::cin, roomInput);
-
-						// Check if input is a number (selecting existing room)
-						int roomIndex;
-						try {
-							roomIndex = std::stoi(roomInput);
-							if (roomIndex > 0 && roomIndex <= static_cast<int>(availableRooms.size()))
-								currentRoom = availableRooms[roomIndex - 1];
-							else
-								currentRoom = roomInput;
-						} catch (...) { // Input is not a number, treat as new room name
-							currentRoom = roomInput;
+					// Display available rooms
+					std::string roomsStr = "Available rooms: ";
+					if (rooms.empty()) {
+						roomsStr += "none (create a new one)";
+					} else {
+						for (size_t i = 0; i < rooms.size(); ++i) {
+							if (i > 0) roomsStr += ", ";
+							roomsStr += rooms[i];
 						}
-
-						joinRoom(username, currentRoom);
 					}
+					ui->addSystemMessage(roomsStr);
 				} else if (type == "message") {
-					std::cout << "\033[32m" << received["data"] << "\033[0m\n";
-				} else if (type == "userList") {
-					usersInRoom.clear();
-					for (auto &user : received["data"])
-						usersInRoom.push_back(user);
+					// Handle chat message
+					std::string messageText = received["data"];
 
-					std::cout << "\n=== Users in " << currentRoom << " ===\n";
-					for (const auto &user : usersInRoom)
-						std::cout << "- " << user << "\n";
-					std::cout << "==========================\n";
+					// Check if it's a user message (username: message format)
+					size_t colonPos = messageText.find(": ");
+					if (colonPos != std::string::npos) {
+						std::string username = messageText.substr(0, colonPos);
+						std::string content = messageText.substr(colonPos + 2);
+						ui->addMessage(username, content);
+					} else {
+						ui->addSystemMessage(messageText);
+					}
+				} else if (type == "userList") {
+					// Handle user list update
+					std::vector<std::string> users;
+					for (auto& user : received["data"])
+						users.push_back(user);
+					ui->updateUsers(users);
 				}
 			}
-		} else if (msg->type == ix::WebSocketMessageType::Open) {
-			std::cout << "Connected to chat server.\n";
-		} else if (msg->type == ix::WebSocketMessageType::Error) {
-			std::cout << "Connection error: " << msg->errorInfo.reason << "\n";
-		} else if (msg->type == ix::WebSocketMessageType::Close) {
-			std::cout << "Connection closed.\n";
+		} catch (const std::exception& e) {
+			ui->addSystemMessage("Error parsing message: " + std::string(e.what()));
 		}
-	});
+	} else if (msg->type == ix::WebSocketMessageType::Open) {
+		ui->addSystemMessage("Connected to server");
+	} else if (msg->type == ix::WebSocketMessageType::Error) {
+		ui->addSystemMessage("Connection error: " + msg->errorInfo.reason);
+		connected = false;
+	} else if (msg->type == ix::WebSocketMessageType::Close) {
+		ui->addSystemMessage("Connection closed");
+		connected = false;
+	}
 }
 
-bool ChatClient::processCommand(const std::string &command) {
-	if (command == "/exit") {
-		return false;
-	} else if (command == "/help") {
-		printHelp();
-	} else if (command == "/users") {
-		json userListMsg = {{"type", "requestUserList"}};
-		webSocket.send(userListMsg.dump());
-	} else if (!command.empty()) {
-		json data = {{"type", "sendMessage"}, {"data", command}};
-		webSocket.send(data.dump());
+bool ChatClient::sendMessage(const std::string& message) {
+	if (!connected) return false;
+
+	json msgJson;
+
+	// Check if it's a command
+	if (message[0] == '/') {
+		handleCommand(message);
+		return true;
 	}
+
+	// Regular message
+	msgJson["type"] = "message";
+	msgJson["room"] = currentRoom;
+	msgJson["username"] = username;
+	msgJson["text"] = message;
+
+	webSocket.send(msgJson.dump());
 	return true;
 }
 
-void ChatClient::run() {
-	std::cout << "Enter your username: ";
-	std::getline(std::cin, username);
-
-	setupCallbacks();
-
-	if (!connect()) {
-		std::cerr << "Failed to connect to server.\n";
+void ChatClient::joinRoom(const std::string& roomName, const std::string& username) {
+	if (!connected) {
+		ui->addSystemMessage("Not connected to server");
 		return;
 	}
 
-	// Wait for room selection and connection
-	while (!connected) {
-		std::this_thread::sleep_for(std::chrono::milliseconds(100));
+	this->username = username;
+	currentRoom = roomName;
+
+	// Send join room message
+	json joinMsg = { { "type", "joinRoom" },
+					 { "data", { { "username", username }, { "room", roomName } } } };
+
+	webSocket.send(joinMsg.dump());
+	ui->showStatus("Joining room: " + roomName + " as " + username);
+}
+
+void ChatClient::requestUsers() {
+	if (!connected) return;
+
+	json usersMsg;
+	usersMsg["type"] = "users";
+	usersMsg["room"] = currentRoom;
+
+	webSocket.send(usersMsg.dump());
+}
+
+void ChatClient::run() {
+	// Initialize UI
+	ui->init();
+
+	// Connect to server
+	ui->showStatus("Connecting to " + url + "...");
+	if (!connect()) {
+		ui->addSystemMessage("Failed to connect to server");
+		ui->showStatus("Failed to connect");
+		std::this_thread::sleep_for(std::chrono::seconds(3));
+		return;
 	}
 
-	std::cout << "Joined room: " << currentRoom << "\n";
-	std::cout << "Type your messages below (type /help for commands):\n";
+	ui->showStatus("Connected! Please enter your username and room: /join <room> "
+				   "<username>");
 
-	std::string message;
-	bool running = true;
+	// Main UI loop
+	ui->run([this](const std::string& input) { handleMessage(input); });
+}
 
-	while (running) {
-		std::getline(std::cin, message);
-		running = processCommand(message);
+void ChatClient::handleMessage(const std::string& input) {
+	// Check if this is a command
+	if (!input.empty() && input[0] == '/') {
+		handleCommand(input);
+		return;
+	} else {
+		// Regular message - send to current room
+		if (!currentRoom.empty() && !username.empty()) {
+			json msgJson = { { "type", "sendMessage" }, { "data", input } };
+			webSocket.send(msgJson.dump());
+		} else {
+			ui->addSystemMessage("You must join a room first: /join <room> <username>");
+		}
 	}
+}
 
-	disconnect();
+void ChatClient::handleCommand(const std::string& command) {
+	std::istringstream iss(command);
+	std::string cmd;
+	iss >> cmd;
+
+	if (cmd == "/join") {
+		std::string room, username;
+		iss >> room >> username;
+
+		if (room.empty() || username.empty()) {
+			ui->addSystemMessage("Usage: /join <room> <username>");
+			return;
+		}
+
+		joinRoom(room, username);
+		ui->addSystemMessage("Joining room " + room + " as " + username);
+	} else if (cmd == "/users") {
+		requestUsers();
+	} else if (cmd == "/help") {
+		ui->addSystemMessage("Available commands:");
+		ui->addSystemMessage("/join <room> <username> - Join a room");
+		ui->addSystemMessage("/users - List users in current room");
+		ui->addSystemMessage("/exit - Exit the application");
+		ui->addSystemMessage("/help - Show this help");
+	} else if (cmd == "/exit") {
+		// This will be handled in the UI's run method
+	} else {
+		ui->addSystemMessage("Unknown command: " + cmd);
+	}
 }

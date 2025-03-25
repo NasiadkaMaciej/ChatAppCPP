@@ -1,6 +1,6 @@
 CXX = g++
 CXXFLAGS = -std=c++17 -Wall -Wextra
-LDFLAGS = -lixwebsocket -lz -lpthread -lssl -lcrypto
+LDFLAGS = -lixwebsocket -lz -lpthread -lssl -lcrypto -lncurses
 
 # Directory structure
 SRC_DIR = src
@@ -36,20 +36,23 @@ install: $(TARGET)
 uninstall:
 	rm -f /usr/bin/chat
 
-# If dependencies need to be installed
+# Install dependencies
+# Change CMAKE of IXWebSocket to enable TLS support
 deps:
 	@echo "Installing dependencies..."
-	@if [ ! -d "IXWebSocket" ]; then \
-		git clone https://github.com/machinezone/IXWebSocket.git && \
-		cd IXWebSocket && \
+	mkdir -p deps
+	@if [ ! -d "deps/IXWebSocket" ]; then \
+		git clone https://github.com/machinezone/IXWebSocket.git deps/IXWebSocket && \
+		cd deps/IXWebSocket && \
+		sed -i 's/option(USE_TLS "Enable TLS support" FALSE)/option(USE_TLS "Enable TLS support" TRUE)/' CMakeLists.txt
 		mkdir -p build && cd build && \
 		cmake .. && \
 		make -j && \
 		sudo make install; \
 	fi
-	@if [ ! -d "json" ]; then \
-		git clone https://github.com/nlohmann/json && \
-		cd json && \
+	@if [ ! -d "deps/json" ]; then \
+		git clone https://github.com/nlohmann/json.git deps/json && \
+		cd deps/json && \
 		mkdir -p build && cd build && \
 		cmake .. && \
 		make -j && \

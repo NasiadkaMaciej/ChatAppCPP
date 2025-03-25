@@ -1,9 +1,16 @@
-Build manual 
 Docs 
-ncurses 
-cmake
-Clean upgrade
-Improve layout
-server?
-readme
+Server in C++?
+Upgrade server
 Allow other servers?
+Themes
+Add history like in terminal
+Display room name
+Add option to list rooms
+Command handlers
+Message handlers
+Improve status messages
+UTF-8
+Resizable panels
+Scrolling
+Save username?
+Update readme.md
