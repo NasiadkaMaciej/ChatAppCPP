@@ -5,16 +5,16 @@
 
 using json = nlohmann::json;
 
-ChatClient::ChatClient(const std::string& url)
+Client::Client(const std::string& url)
   : url(url)
   , connected(false)
-  , ui(std::make_unique<ChatUI>()) {}
+  , ui(std::make_unique<UI>()) {}
 
-ChatClient::~ChatClient() {
+Client::~Client() {
 	webSocket.stop();
 }
 
-bool ChatClient::connect() {
+bool Client::connect() {
 	ui->showStatus("Connecting to server...");
 
 	webSocket.setUrl(url);
@@ -38,7 +38,7 @@ bool ChatClient::connect() {
 }
 
 // Add a new method to handle WebSocket messages
-void ChatClient::handleWebSocketMessage(const ix::WebSocketMessagePtr& msg) {
+void Client::handleWebSocketMessage(const ix::WebSocketMessagePtr& msg) {
 	if (msg->type == ix::WebSocketMessageType::Message) {
 		try {
 			json received = json::parse(msg->str);
@@ -98,7 +98,7 @@ void ChatClient::handleWebSocketMessage(const ix::WebSocketMessagePtr& msg) {
 	}
 }
 
-bool ChatClient::sendMessage(const std::string& message) {
+bool Client::sendMessage(const std::string& message) {
 	if (!connected) return false;
 
 	json msgJson;
@@ -119,7 +119,7 @@ bool ChatClient::sendMessage(const std::string& message) {
 	return true;
 }
 
-void ChatClient::joinRoom(const std::string& roomName, const std::string& username) {
+void Client::joinRoom(const std::string& roomName, const std::string& username) {
 	if (!connected) {
 		ui->addSystemMessage("Not connected to server");
 		return;
@@ -136,7 +136,7 @@ void ChatClient::joinRoom(const std::string& roomName, const std::string& userna
 	ui->showStatus("Joining room: " + roomName + " as " + username);
 }
 
-void ChatClient::requestUsers() {
+void Client::requestUsers() {
 	if (!connected) return;
 
 	json usersMsg;
@@ -146,7 +146,16 @@ void ChatClient::requestUsers() {
 	webSocket.send(usersMsg.dump());
 }
 
-void ChatClient::run() {
+void Client::requestRooms() {
+    if (!connected) return;
+
+    json roomsMsg;
+    roomsMsg["type"] = "rooms";
+    
+    webSocket.send(roomsMsg.dump());
+}
+
+void Client::run() {
 	// Initialize UI
 	ui->init();
 
@@ -166,7 +175,7 @@ void ChatClient::run() {
 	ui->run([this](const std::string& input) { handleMessage(input); });
 }
 
-void ChatClient::handleMessage(const std::string& input) {
+void Client::handleMessage(const std::string& input) {
 	// Check if this is a command
 	if (!input.empty() && input[0] == '/') {
 		handleCommand(input);
@@ -182,7 +191,7 @@ void ChatClient::handleMessage(const std::string& input) {
 	}
 }
 
-void ChatClient::handleCommand(const std::string& command) {
+void Client::handleCommand(const std::string& command) {
 	std::istringstream iss(command);
 	std::string cmd;
 	iss >> cmd;
@@ -200,10 +209,13 @@ void ChatClient::handleCommand(const std::string& command) {
 		ui->addSystemMessage("Joining room " + room + " as " + username);
 	} else if (cmd == "/users") {
 		requestUsers();
+	} else if (cmd == "/rooms") {
+        requestRooms();
 	} else if (cmd == "/help") {
 		ui->addSystemMessage("Available commands:");
 		ui->addSystemMessage("/join <room> <username> - Join a room");
 		ui->addSystemMessage("/users - List users in current room");
+		ui->addSystemMessage("/rooms - Show available rooms on the server");
 		ui->addSystemMessage("/exit - Exit the application");
 		ui->addSystemMessage("/help - Show this help");
 	} else if (cmd == "/exit") {

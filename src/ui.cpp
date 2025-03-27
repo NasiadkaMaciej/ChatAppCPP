@@ -1,20 +1,20 @@
-#include "chatui.h"
+#include "ui.h"
 #include <algorithm>
 #include <ctime>
 #include <iomanip>
 #include <sstream>
 
-ChatUI::ChatUI()
+UI::UI()
   : chatWin(nullptr)
   , inputWin(nullptr)
   , userListWin(nullptr)
   , statusWin(nullptr) {}
 
-ChatUI::~ChatUI() {
+UI::~UI() {
 	cleanup();
 }
 
-void ChatUI::init() {
+void UI::init() {
 	// Initialize ncurses
 	initscr();
 	cbreak();
@@ -29,7 +29,7 @@ void ChatUI::init() {
 	initWindows();
 }
 
-void ChatUI::initWindows() {
+void UI::initWindows() {
 	int maxY, maxX;
 	getmaxyx(stdscr, maxY, maxX);
 
@@ -51,7 +51,7 @@ void ChatUI::initWindows() {
 	drawAll();
 }
 
-void ChatUI::drawAll() {
+void UI::drawAll() {
 	drawChat();
 	drawUserList();
 	drawInput();
@@ -62,7 +62,7 @@ void ChatUI::drawAll() {
 	wrefresh(inputWin);
 }
 
-void ChatUI::drawChat() {
+void UI::drawChat() {
 	wclear(chatWin);
 
 	// Draw border and title
@@ -82,7 +82,7 @@ void ChatUI::drawChat() {
 	wrefresh(chatWin);
 }
 
-void ChatUI::drawUserList() {
+void UI::drawUserList() {
 	wclear(userListWin);
 
 	// Draw border and title
@@ -97,19 +97,19 @@ void ChatUI::drawUserList() {
 	wrefresh(userListWin);
 }
 
-void ChatUI::drawInput() {
+void UI::drawInput() {
 	wclear(inputWin);
 	mvwprintw(inputWin, 0, 0, "> %s", inputBuffer.c_str());
 	wrefresh(inputWin);
 }
 
-void ChatUI::drawStatus() {
+void UI::drawStatus() {
 	wclear(statusWin);
 	mvwprintw(statusWin, 0, 0, "%s", statusMessage.c_str());
 	wrefresh(statusWin);
 }
 
-std::string ChatUI::handleInput() {
+std::string UI::handleInput() {
 	int ch = getch();
 	std::string result;
 
@@ -132,7 +132,7 @@ std::string ChatUI::handleInput() {
 	return result;
 }
 
-void ChatUI::handleResize() {
+void UI::handleResize() {
 	endwin();
 	refresh();
 	clear();
@@ -141,7 +141,7 @@ void ChatUI::handleResize() {
 	initWindows();
 }
 
-void ChatUI::run(std::function<void(const std::string&)> messageHandler) {
+void UI::run(std::function<void(const std::string&)> messageHandler) {
 	bool running = true;
 
 	while (running) {
@@ -177,7 +177,7 @@ void ChatUI::run(std::function<void(const std::string&)> messageHandler) {
 	}
 }
 
-void ChatUI::addMessage(const std::string& username, const std::string& message) {
+void UI::addMessage(const std::string& username, const std::string& message) {
 	// Get current time
 	// ToDo: Make this a separate method and use it in addSystemMessage
 	auto now = std::time(nullptr);
@@ -191,7 +191,7 @@ void ChatUI::addMessage(const std::string& username, const std::string& message)
 	drawChat();
 }
 
-void ChatUI::addSystemMessage(const std::string& message) {
+void UI::addSystemMessage(const std::string& message) {
 	// Get current time
 	auto now = std::time(nullptr);
 	auto tm = *std::localtime(&now);
@@ -204,17 +204,17 @@ void ChatUI::addSystemMessage(const std::string& message) {
 	drawChat();
 }
 
-void ChatUI::updateUsers(const std::vector<std::string>& users) {
+void UI::updateUsers(const std::vector<std::string>& users) {
 	this->users = users;
 	drawUserList();
 }
 
-void ChatUI::showStatus(const std::string& status) {
+void UI::showStatus(const std::string& status) {
 	statusMessage = status;
 	drawStatus();
 }
 
-void ChatUI::cleanup() {
+void UI::cleanup() {
 	if (chatWin) delwin(chatWin);
 	if (inputWin) delwin(inputWin);
 	if (userListWin) delwin(userListWin);

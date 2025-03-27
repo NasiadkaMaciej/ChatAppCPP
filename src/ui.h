@@ -6,10 +6,10 @@
 #include <string>
 #include <vector>
 
-class ChatUI {
+class UI {
   public:
-	ChatUI();
-	~ChatUI();
+	UI();
+	~UI();
 
 	// Initialize the UI
 	void init();

@@ -1,11 +1,8 @@
 Docs 
 Server in C++?
-Upgrade server
 Allow other servers?
-Themes
 Add history like in terminal
 Display room name
-Add option to list rooms
 Command handlers
 Message handlers
 Improve status messages

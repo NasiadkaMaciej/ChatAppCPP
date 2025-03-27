@@ -1,19 +1,20 @@
 #pragma once
 
-#include "chatui.h"
+#include "ui.h"
 #include <functional>
 #include <ixwebsocket/IXWebSocket.h>
 #include <memory>
 #include <string>
 #include <vector>
 
-class ChatClient {
+class Client {
   public:
-	ChatClient(const std::string& url);
-	~ChatClient();
+	Client(const std::string& url);
+	~Client();
 	bool connect();
 	bool sendMessage(const std::string& message);
 	void requestUsers();
+	void requestRooms();
 	void run();
 
   private:
@@ -22,7 +23,7 @@ class ChatClient {
 	std::string url;
 	std::string currentRoom;
 	bool connected;
-	std::unique_ptr<ChatUI> ui;
+	std::unique_ptr<UI> ui;
 	std::vector<std::string> users;
 
 	// Message handlers
