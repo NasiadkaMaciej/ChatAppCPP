@@ -14,7 +14,9 @@ ChatElement::~ChatElement() {
 }
 
 void ChatElement::draw() {
-    wclear(win);
+    if (!win) return;
+
+    werase(win);
     
     // Draw border and title
     box(win, 0, 0);
@@ -36,13 +38,13 @@ void ChatElement::draw() {
     size_t startIdx = scrollPosition;
     
     for (size_t i = 0; i < std::min(messages.size() - startIdx, static_cast<size_t>(visibleLines)); ++i)
-        mvwprintw(win, i + 1, 1, "%s", messages[startIdx + i].c_str());
+        mvwprintw(win, i + 1, 1, "%.*s", width-2, messages[startIdx + i].c_str());
     
     needRedraw = false;
 }
 
 void ChatElement::refresh() {
-    wrefresh(win);
+    if (win) wrefresh(win);
 }
 
 void ChatElement::handleInput(int ch) {

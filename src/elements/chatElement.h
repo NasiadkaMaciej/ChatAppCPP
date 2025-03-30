@@ -24,7 +24,6 @@ class ChatElement : public UIElement {
     bool isOnBottom() const;
     
   private:
-    WINDOW* win;
     std::vector<std::string> messages;
     int scrollPosition;
 };

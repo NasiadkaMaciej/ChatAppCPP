@@ -26,59 +26,67 @@ void UI::init() {
 	initWindows();
 }
 
-void UI::initWindows() {
+void UI::setupWindows(bool initialSetup) {
+	// Get terminal dimensions
 	int maxY, maxX;
 	getmaxyx(stdscr, maxY, maxX);
 
 	// Calculate dimensions
 	userListWidth = std::max(20, maxX / 5);
 	chatWidth = maxX - userListWidth;
-	userListHeight = maxY - 3; // Room for status and input
+	userListHeight = maxY - 3;
 	chatHeight = maxY - 3;
 	inputHeight = 1;
 	inputWidth = maxX;
 	statusHeight = 1;
 
-	// Create UI elements
-	chatElement = std::make_unique<ChatElement>(chatHeight, chatWidth, 0, 0);
-	userListElement =
-	  std::make_unique<UserListElement>(userListHeight, userListWidth, 0, chatWidth);
-	inputElement = std::make_unique<InputElement>(inputHeight, inputWidth, maxY - 2, 0);
-	statusElement = std::make_unique<StatusElement>(statusHeight, maxX, maxY - 1, 0);
+	if (initialSetup) {
+		chatElement = std::make_unique<ChatElement>(chatHeight, chatWidth, 0, 0);
+		userListElement =
+		  std::make_unique<UserListElement>(userListHeight, userListWidth, 0, chatWidth);
+		inputElement = std::make_unique<InputElement>(inputHeight, inputWidth, maxY - 2, 0);
+		statusElement = std::make_unique<StatusElement>(statusHeight, maxX, maxY - 1, 0);
 
-	chatElement->setNeedRedraw(true);
-	userListElement->setNeedRedraw(true);
-	inputElement->setNeedRedraw(true);
-	statusElement->setNeedRedraw(true);
-	
-	// Populate elements list
-	elements.clear();
-	elements.push_back(chatElement.get());
-	elements.push_back(userListElement.get());
-	elements.push_back(inputElement.get());
-	elements.push_back(statusElement.get());
+		// Populate elements list
+		elements.clear();
+		elements.push_back(chatElement.get());
+		elements.push_back(userListElement.get());
+		elements.push_back(inputElement.get());
+		elements.push_back(statusElement.get());
 
-	// Show initial status
-	statusElement->setStatus(statusMessage);
+		// Set initial user list content
+		std::vector<std::string> initialUserList;
+		userListElement->updateUsers(initialUserList);
 
-	// Force initial draw of all elements
-	drawAll();
-}
+		// Set initial status
+		statusElement->setStatus(statusMessage);
+	} else {
+		// Resize all UI elements
+		chatElement->resize(chatHeight, chatWidth, 0, 0);
+		userListElement->resize(userListHeight, userListWidth, 0, chatWidth);
+		inputElement->resize(inputHeight, inputWidth, maxY - 2, 0);
+		statusElement->resize(statusHeight, maxX, maxY - 1, 0);
+	}
 
-void UI::drawAll() {
+	// Redraw all elements
 	for (auto* element : elements) {
 		element->draw();
 		element->refresh();
 	}
 
-	// Move cursor to input element
-	inputElement->refresh();
+	// Set input focus (todo: method?)
+	wmove(inputElement->getWindow(), 0, inputElement->getInput().length() + 2);
+	wrefresh(inputElement->getWindow());
+}
+
+// Now use this in both places:
+void UI::initWindows() {
+	setupWindows(true);
 }
 
 std::string UI::handleInput() {
-	int ch = getch();
+	int ch = wgetch(inputElement->getWindow());
 	std::string result;
-
 
 	if (ch == KEY_ENTER || ch == '\n' || ch == '\r') {
 		// Submit current input
@@ -103,12 +111,9 @@ std::string UI::handleInput() {
 }
 
 void UI::handleResize() {
-	endwin();
-	refresh();
 	clear();
-
-	// Re-initialize windows
-	initWindows();
+	refresh();
+	setupWindows(false);
 }
 
 void UI::run(std::function<void(const std::string&)> messageHandler) {
@@ -119,32 +124,29 @@ void UI::run(std::function<void(const std::string&)> messageHandler) {
 			std::string input = handleInput();
 
 			if (!input.empty()) {
-				// Check for exit commands directly
 				if (input == "/exit") {
 					running = false;
 					continue;
 				}
 
-				// Process the input via the callback
+				// Process input via callback
 				messageHandler(input);
+				inputElement->clearInput();
 			}
 
-			// Only redraw elements that need redrawing
+			// Update elements that need redrawing using double-buffering
 			for (auto* element : elements) {
-				if (element->getNeedRedraw()) {
+				if (element && element->getNeedRedraw()) {
 					element->draw();
-					element->refresh();
+					wnoutrefresh(element->getWindow());
+					doupdate();
 				}
 			}
 
-			inputElement->refresh();
-
-			// Short delay to prevent high CPU usage
-			napms(20);
+			// Small delay to reduce CPU usage
+			napms(10);
 		} catch (const std::exception& e) {
-			// Show exception in the status bar
 			showStatus("Error: " + std::string(e.what()));
-			// Also add it as a system message
 			addSystemMessage("Error occurred: " + std::string(e.what()));
 		}
 	}
@@ -179,7 +181,18 @@ void UI::updateUsers(const std::vector<std::string>& users) {
 void UI::showStatus(const std::string& status) {
 	statusMessage = status;
 	statusElement->setStatus(status);
-	inputElement->setNeedRedraw(true); // Get input focus back
+
+	for (auto* element : elements) {
+		if (element && element->getNeedRedraw()) {
+			element->draw();
+			wnoutrefresh(element->getWindow());
+		}
+	}
+	doupdate();
+
+	// Make sure cursor returns to input element after status update
+	wmove(inputElement->getWindow(), 0, inputElement->getInput().length() + 2);
+	wrefresh(inputElement->getWindow());
 }
 
 bool UI::isOnBottom() const {

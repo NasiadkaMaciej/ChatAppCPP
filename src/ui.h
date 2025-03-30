@@ -34,9 +34,6 @@ class UI {
 	// Show an error or notification in the status bar
 	void showStatus(const std::string& status);
 
-	// Draw all windows that need redrawing
-	void drawAll();
-
 	// Check if chat is scrolled to the bottom
 	bool isOnBottom() const;
 
@@ -61,6 +58,9 @@ class UI {
 
 	// Initialize windows
 	void initWindows();
+
+	// Resize all windows
+	void setupWindows(bool initialSetup);
 
 	// Handle keyboard input
 	std::string handleInput();

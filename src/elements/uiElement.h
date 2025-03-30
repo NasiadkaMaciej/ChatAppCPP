@@ -1,24 +1,31 @@
 #pragma once
+#include <ncurses.h>
 
 class UIElement {
   public:
-    UIElement(int height, int width, int startY, int startX);
-    virtual ~UIElement();
+	UIElement(int height, int width, int startY, int startX);
+	virtual ~UIElement();
 
-    // Draw the UI element
-    virtual void draw() = 0;
+	// Draw the UI element
+	virtual void draw() = 0;
 
-    // Refresh the UI element
-    virtual void refresh() = 0;
+	// Refresh the UI element
+	virtual void refresh() = 0;
 
-    // Set/get the need to redraw flag
-    void setNeedRedraw(bool value);
-    bool getNeedRedraw() const;
+	// Resize the UI element
+	void resize(int newHeight, int newWidth, int newStartY, int newStartX);
+
+	// Set/get the need to redraw flag
+	void setNeedRedraw(bool value);
+	bool getNeedRedraw() const;
+
+	WINDOW* getWindow() const { return win; }
 
   protected:
-    int height;
-    int width;
-    int startY;
-    int startX;
-    bool needRedraw;
+	WINDOW* win;
+	int height;
+	int width;
+	int startY;
+	int startX;
+	bool needRedraw;
 };

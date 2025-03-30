@@ -13,7 +13,7 @@ InputElement::~InputElement() {
 }
 
 void InputElement::draw() {
-	wclear(win);
+	werase(win);
 	mvwprintw(win, 0, 0, "> %s", inputBuffer.c_str());
 	needRedraw = false;
 }
@@ -33,30 +33,15 @@ void InputElement::handleInput(int ch) {
 			changed = true;
 		}
 	} else if (ch == KEY_UP) {
-		// Navigate to previous item in history
-		if (!history.empty() && historyIndex > 0) {
-			historyIndex--;
-			inputBuffer = history[historyIndex];
-			changed = true;
-		}
+		changed = historyUp();
 	} else if (ch == KEY_DOWN) {
-		// Navigate to next item in history
-		if (historyIndex < history.size()) {
-			historyIndex++;
-			// At the end of history, clear the input
-			if (historyIndex == history.size())
-				inputBuffer.clear();
-			else
-				inputBuffer = history[historyIndex];
-			changed = true;
-		}
+		changed = historyDown();
 	} else if (ch >= 32 && ch <= 126) {
 		// Add printable characters to input buffer
 		inputBuffer += static_cast<char>(ch);
 		changed = true;
 	}
 
-	// Only set needRedraw if the input actually changed
 	if (changed) needRedraw = true;
 }
 

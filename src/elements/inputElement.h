@@ -24,7 +24,6 @@ class InputElement : public UIElement {
     void addToHistory(const std::string& command);
     
   private:
-    WINDOW* win;
     std::string inputBuffer;
     std::vector<std::string> history;
     size_t historyIndex;

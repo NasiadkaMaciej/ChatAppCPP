@@ -6,6 +6,8 @@ Message handlers
 Improve status messages
 UTF-8
 Resizable panels
-Scrolling
 Save username?
 Update readme.md
+Fix left/right arrows
+Fix Scrolling
+Fix chat not updating till key press

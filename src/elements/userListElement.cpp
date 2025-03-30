@@ -6,6 +6,7 @@ UserListElement::UserListElement(int height, int width, int startY, int startX)
 
 	win = newwin(height, width, startY, startX);
 	draw();
+	needRedraw = true;
 }
 
 UserListElement::~UserListElement() {
@@ -13,24 +14,29 @@ UserListElement::~UserListElement() {
 }
 
 void UserListElement::draw() {
+	if (!win) return; // Safety check
+
+	werase(win);
+
 	// Draw border and title
 	box(win, 0, 0);
 	mvwprintw(win, 0, 2, " Users ");
 
-	// Display users
-	int visibleLines = height - 2;
-	if (users.empty()) {
+	// Display users or default message
+	// Make sure this text is visible by using clear attributes
+	wattrset(win, A_NORMAL);
+
+	if (users.empty())
 		mvwprintw(win, 1, 1, "Not in a room");
-	} else {
-		for (size_t i = 0; i < std::min(users.size(), static_cast<size_t>(visibleLines)); ++i)
+	else
+		for (size_t i = 0; i < std::min(users.size(), static_cast<size_t>(height - 2)); ++i)
 			mvwprintw(win, i + 1, 1, "%s", users[i].c_str());
-	}
 
 	needRedraw = false;
 }
 
 void UserListElement::refresh() {
-	wrefresh(win);
+	if (win) wrefresh(win);
 }
 
 void UserListElement::updateUsers(const std::vector<std::string>& newUsers) {

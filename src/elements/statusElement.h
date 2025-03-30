@@ -15,6 +15,5 @@ class StatusElement : public UIElement {
     void setStatus(const std::string& message);
     
   private:
-    WINDOW* win;
     std::string statusMessage;
 };

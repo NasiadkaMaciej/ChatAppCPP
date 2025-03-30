@@ -16,6 +16,5 @@ class UserListElement : public UIElement {
     void updateUsers(const std::vector<std::string>& newUsers);
     
   private:
-    WINDOW* win;
     std::vector<std::string> users;
 };
