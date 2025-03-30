@@ -54,6 +54,10 @@ class UI {
 	// Current input buffer
 	std::string inputBuffer;
 
+	// Command history
+	std::vector<std::string> inputHistory;
+	size_t historyIndex;
+	
 	// Current user list
 	std::vector<std::string> users;
 

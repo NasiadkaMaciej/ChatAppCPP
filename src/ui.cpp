@@ -8,7 +8,8 @@ UI::UI()
   : chatWin(nullptr)
   , inputWin(nullptr)
   , userListWin(nullptr)
-  , statusWin(nullptr) {}
+  , statusWin(nullptr)
+  , historyIndex(0) {}
 
 UI::~UI() {
 	cleanup();
@@ -116,10 +117,33 @@ std::string UI::handleInput() {
 	if (ch == KEY_ENTER || ch == '\n' || ch == '\r') {
 		// Submit current input
 		result = inputBuffer;
+
+		// Add to history if not empty and not a duplicate of the most recent entry
+		if (!result.empty() && (inputHistory.empty() || result != inputHistory.back()))
+			inputHistory.push_back(result);
+
+		// Reset history index to point to end of history
+		historyIndex = inputHistory.size();
 		inputBuffer.clear();
 	} else if (ch == KEY_BACKSPACE || ch == 127 || ch == '\b') {
 		// Delete last character
 		if (!inputBuffer.empty()) inputBuffer.pop_back();
+	} else if (ch == KEY_UP) {
+		// Navigate to previous item in history
+		if (!inputHistory.empty() && historyIndex > 0) {
+			historyIndex--;
+			inputBuffer = inputHistory[historyIndex];
+		}
+	} else if (ch == KEY_DOWN) {
+		// Navigate to next item in history
+		if (historyIndex < inputHistory.size()) {
+			historyIndex++;
+			// At the end of history, clear the input
+			if (historyIndex == inputHistory.size())
+				inputBuffer.clear();
+			else
+				inputBuffer = inputHistory[historyIndex];
+		}
 	} else if (ch == KEY_RESIZE) {
 		// Handle terminal resize
 		handleResize();

@@ -1,9 +1,7 @@
 Docs 
 Server in C++?
 Allow other servers?
-Add history like in terminal
 Display room name
-Command handlers
 Message handlers
 Improve status messages
 UTF-8
