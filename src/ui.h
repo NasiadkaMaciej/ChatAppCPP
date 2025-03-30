@@ -1,8 +1,13 @@
 #pragma once
 
+#include "elements/chatElement.h"
+#include "elements/inputElement.h"
+#include "elements/statusElement.h"
+#include "elements/uiElement.h"
+#include "elements/userListElement.h"
 #include <functional>
+#include <list>
 #include <memory>
-#include <ncurses.h>
 #include <string>
 #include <vector>
 
@@ -29,18 +34,24 @@ class UI {
 	// Show an error or notification in the status bar
 	void showStatus(const std::string& status);
 
-	// Draw all windows
+	// Draw all windows that need redrawing
 	void drawAll();
+
+	// Check if chat is scrolled to the bottom
+	bool isOnBottom() const;
 
 	// Clean up resources and exit
 	void cleanup();
 
   private:
-	// Windows
-	WINDOW* chatWin;	 // Chat messages
-	WINDOW* inputWin;	 // Input box
-	WINDOW* userListWin; // User list
-	WINDOW* statusWin;	 // Status bar
+	// UI elements
+	std::unique_ptr<ChatElement> chatElement;
+	std::unique_ptr<InputElement> inputElement;
+	std::unique_ptr<UserListElement> userListElement;
+	std::unique_ptr<StatusElement> statusElement;
+
+	// List of all elements for easier iteration
+	std::list<UIElement*> elements;
 
 	// Window dimensions and positions
 	int chatHeight, chatWidth;
@@ -48,33 +59,8 @@ class UI {
 	int userListHeight, userListWidth;
 	int statusHeight;
 
-	// Message storage
-	std::vector<std::string> messages;
-
-	// Current input buffer
-	std::string inputBuffer;
-
-	// Command history
-	std::vector<std::string> inputHistory;
-	size_t historyIndex;
-	
-	// Current user list
-	std::vector<std::string> users;
-
 	// Initialize windows
 	void initWindows();
-
-	// Draw chat window
-	void drawChat();
-
-	// Draw input window
-	void drawInput();
-
-	// Draw user list
-	void drawUserList();
-
-	// Draw status bar
-	void drawStatus();
 
 	// Handle keyboard input
 	std::string handleInput();

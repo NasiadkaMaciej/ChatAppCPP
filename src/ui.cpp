@@ -5,11 +5,7 @@
 #include <sstream>
 
 UI::UI()
-  : chatWin(nullptr)
-  , inputWin(nullptr)
-  , userListWin(nullptr)
-  , statusWin(nullptr)
-  , historyIndex(0) {}
+  : statusMessage("Welcome to Chat") {}
 
 UI::~UI() {
 	cleanup();
@@ -43,116 +39,66 @@ void UI::initWindows() {
 	inputWidth = maxX;
 	statusHeight = 1;
 
-	// Create windows
-	chatWin = newwin(chatHeight, chatWidth, 0, 0);
-	userListWin = newwin(userListHeight, userListWidth, 0, chatWidth);
-	inputWin = newwin(inputHeight, inputWidth, maxY - 2, 0);
-	statusWin = newwin(statusHeight, maxX, maxY - 1, 0);
+	// Create UI elements
+	chatElement = std::make_unique<ChatElement>(chatHeight, chatWidth, 0, 0);
+	userListElement =
+	  std::make_unique<UserListElement>(userListHeight, userListWidth, 0, chatWidth);
+	inputElement = std::make_unique<InputElement>(inputHeight, inputWidth, maxY - 2, 0);
+	statusElement = std::make_unique<StatusElement>(statusHeight, maxX, maxY - 1, 0);
 
+	chatElement->setNeedRedraw(true);
+	userListElement->setNeedRedraw(true);
+	inputElement->setNeedRedraw(true);
+	statusElement->setNeedRedraw(true);
+	
+	// Populate elements list
+	elements.clear();
+	elements.push_back(chatElement.get());
+	elements.push_back(userListElement.get());
+	elements.push_back(inputElement.get());
+	elements.push_back(statusElement.get());
+
+	// Show initial status
+	statusElement->setStatus(statusMessage);
+
+	// Force initial draw of all elements
 	drawAll();
 }
 
 void UI::drawAll() {
-	drawChat();
-	drawUserList();
-	drawInput();
-	drawStatus();
+	for (auto* element : elements) {
+		element->draw();
+		element->refresh();
+	}
 
-	// Move cursor to input window
-	wmove(inputWin, 0, inputBuffer.length() + 2);
-	wrefresh(inputWin);
-}
-
-void UI::drawChat() {
-	wclear(chatWin);
-
-	// Draw border and title
-	box(chatWin, 0, 0);
-	mvwprintw(chatWin, 0, 2, " Chat ");
-
-	// Calculate visible lines (accounting for border)
-	int visibleLines = chatHeight - 2;
-
-	// Display messages
-	size_t startIdx =
-	  (messages.size() <= static_cast<size_t>(visibleLines)) ? 0 : messages.size() - visibleLines;
-
-	for (size_t i = 0; i < std::min(messages.size(), static_cast<size_t>(visibleLines)); ++i)
-		mvwprintw(chatWin, i + 1, 1, "%s", messages[startIdx + i].c_str());
-
-	wrefresh(chatWin);
-}
-
-void UI::drawUserList() {
-	wclear(userListWin);
-
-	// Draw border and title
-	box(userListWin, 0, 0);
-	mvwprintw(userListWin, 0, 2, " Users ");
-
-	// Display users
-	int visibleLines = userListHeight - 2;
-	for (size_t i = 0; i < std::min(users.size(), static_cast<size_t>(visibleLines)); ++i)
-		mvwprintw(userListWin, i + 1, 1, "%s", users[i].c_str());
-
-	wrefresh(userListWin);
-}
-
-void UI::drawInput() {
-	wclear(inputWin);
-	mvwprintw(inputWin, 0, 0, "> %s", inputBuffer.c_str());
-	wrefresh(inputWin);
-}
-
-void UI::drawStatus() {
-	wclear(statusWin);
-	mvwprintw(statusWin, 0, 0, "%s", statusMessage.c_str());
-	wrefresh(statusWin);
+	// Move cursor to input element
+	inputElement->refresh();
 }
 
 std::string UI::handleInput() {
 	int ch = getch();
 	std::string result;
 
+
 	if (ch == KEY_ENTER || ch == '\n' || ch == '\r') {
 		// Submit current input
-		result = inputBuffer;
+		result = inputElement->getInput();
 
-		// Add to history if not empty and not a duplicate of the most recent entry
-		if (!result.empty() && (inputHistory.empty() || result != inputHistory.back()))
-			inputHistory.push_back(result);
-
-		// Reset history index to point to end of history
-		historyIndex = inputHistory.size();
-		inputBuffer.clear();
-	} else if (ch == KEY_BACKSPACE || ch == 127 || ch == '\b') {
-		// Delete last character
-		if (!inputBuffer.empty()) inputBuffer.pop_back();
-	} else if (ch == KEY_UP) {
-		// Navigate to previous item in history
-		if (!inputHistory.empty() && historyIndex > 0) {
-			historyIndex--;
-			inputBuffer = inputHistory[historyIndex];
-		}
-	} else if (ch == KEY_DOWN) {
-		// Navigate to next item in history
-		if (historyIndex < inputHistory.size()) {
-			historyIndex++;
-			// At the end of history, clear the input
-			if (historyIndex == inputHistory.size())
-				inputBuffer.clear();
-			else
-				inputBuffer = inputHistory[historyIndex];
+		if (!result.empty()) {
+			// Add to history
+			inputElement->addToHistory(result);
 		}
 	} else if (ch == KEY_RESIZE) {
 		// Handle terminal resize
 		handleResize();
-	} else if (ch >= 32 && ch <= 126) {
-		// Add printable characters to input buffer
-		inputBuffer += static_cast<char>(ch);
+	} else {
+		// Let input element handle the character
+		inputElement->handleInput(ch);
+
+		// Let chat element handle navigation keys
+		chatElement->handleInput(ch);
 	}
 
-	drawInput();
 	return result;
 }
 
@@ -173,8 +119,7 @@ void UI::run(std::function<void(const std::string&)> messageHandler) {
 			std::string input = handleInput();
 
 			if (!input.empty()) {
-				// Check for exit commands directly here as a safety net
-				// ToDo: Change that
+				// Check for exit commands directly
 				if (input == "/exit") {
 					running = false;
 					continue;
@@ -184,35 +129,36 @@ void UI::run(std::function<void(const std::string&)> messageHandler) {
 				messageHandler(input);
 			}
 
-			// Make sure the display is updated regularly
-			// ToDo: This should be done in a separate thread
-			// Maybe check if there's a change before redrawing?
-			drawAll();
+			// Only redraw elements that need redrawing
+			for (auto* element : elements) {
+				if (element->getNeedRedraw()) {
+					element->draw();
+					element->refresh();
+				}
+			}
+
+			inputElement->refresh();
 
 			// Short delay to prevent high CPU usage
-			napms(100);
+			napms(20);
 		} catch (const std::exception& e) {
 			// Show exception in the status bar
 			showStatus("Error: " + std::string(e.what()));
 			// Also add it as a system message
 			addSystemMessage("Error occurred: " + std::string(e.what()));
-			// Continue the loop despite the error
 		}
 	}
 }
 
 void UI::addMessage(const std::string& username, const std::string& message) {
 	// Get current time
-	// ToDo: Make this a separate method and use it in addSystemMessage
 	auto now = std::time(nullptr);
 	auto tm = *std::localtime(&now);
 	std::ostringstream oss;
 	oss << std::put_time(&tm, "[%H:%M:%S] ");
 
 	std::string formattedMessage = oss.str() + username + ": " + message;
-	messages.push_back(formattedMessage);
-
-	drawChat();
+	chatElement->addMessage(formattedMessage);
 }
 
 void UI::addSystemMessage(const std::string& message) {
@@ -223,25 +169,29 @@ void UI::addSystemMessage(const std::string& message) {
 	oss << std::put_time(&tm, "[%H:%M:%S] ");
 
 	std::string formattedMessage = oss.str() + "* " + message;
-	messages.push_back(formattedMessage);
-
-	drawChat();
+	chatElement->addMessage(formattedMessage);
 }
 
 void UI::updateUsers(const std::vector<std::string>& users) {
-	this->users = users;
-	drawUserList();
+	userListElement->updateUsers(users);
 }
 
 void UI::showStatus(const std::string& status) {
 	statusMessage = status;
-	drawStatus();
+	statusElement->setStatus(status);
+	inputElement->setNeedRedraw(true); // Get input focus back
+}
+
+bool UI::isOnBottom() const {
+	return chatElement->isOnBottom();
 }
 
 void UI::cleanup() {
-	if (chatWin) delwin(chatWin);
-	if (inputWin) delwin(inputWin);
-	if (userListWin) delwin(userListWin);
-	if (statusWin) delwin(statusWin);
+	// Elements will clean up their windows in destructors
+	elements.clear();
+	chatElement.reset();
+	inputElement.reset();
+	userListElement.reset();
+	statusElement.reset();
 	endwin();
 }
