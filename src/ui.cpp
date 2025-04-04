@@ -88,6 +88,8 @@ std::string UI::handleInput() {
 	int ch = wgetch(inputElement->getWindow());
 	std::string result;
 
+	if (ch == ERR) return result;
+
 	if (ch == KEY_ENTER || ch == '\n' || ch == '\r') {
 		// Submit current input
 		result = inputElement->getInput();
@@ -139,9 +141,12 @@ void UI::run(std::function<void(const std::string&)> messageHandler) {
 				if (element && element->getNeedRedraw()) {
 					element->draw();
 					wnoutrefresh(element->getWindow());
-					doupdate();
 				}
 			}
+			doupdate();
+
+			// Make sure the input element's cursor is properly positioned
+			inputElement->refresh();
 
 			// Small delay to reduce CPU usage
 			napms(10);

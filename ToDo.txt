@@ -10,4 +10,3 @@ Save username?
 Update readme.md
 Fix left/right arrows
 Fix Scrolling
-Fix chat not updating till key press

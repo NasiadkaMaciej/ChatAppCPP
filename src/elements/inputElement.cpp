@@ -5,6 +5,7 @@ InputElement::InputElement(int height, int width, int startY, int startX)
   , historyIndex(0) {
 
 	win = newwin(height, width, startY, startX);
+	wtimeout(win, 50);
 	draw();
 }
 
