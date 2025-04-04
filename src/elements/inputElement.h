@@ -18,13 +18,6 @@ class InputElement : public UIElement {
     
     void clearInput();
     
-    bool historyUp();
-    bool historyDown();
-    
-    void addToHistory(const std::string& command);
-    
   private:
     std::string inputBuffer;
-    std::vector<std::string> history;
-    size_t historyIndex;
 };

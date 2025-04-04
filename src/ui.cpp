@@ -93,11 +93,6 @@ std::string UI::handleInput() {
 	if (ch == KEY_ENTER || ch == '\n' || ch == '\r') {
 		// Submit current input
 		result = inputElement->getInput();
-
-		if (!result.empty()) {
-			// Add to history
-			inputElement->addToHistory(result);
-		}
 	} else if (ch == KEY_RESIZE) {
 		// Handle terminal resize
 		handleResize();
