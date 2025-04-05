@@ -13,7 +13,6 @@ class Client {
 	~Client();
 	bool connect();
 	bool sendMessage(const std::string& message);
-	void requestUsers();
 	void requestRooms();
 	void run();
 

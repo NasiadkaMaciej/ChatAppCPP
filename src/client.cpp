@@ -136,16 +136,6 @@ void Client::joinRoom(const std::string& roomName, const std::string& username) 
 	ui->showStatus("Joining room: " + roomName + " as " + username);
 }
 
-void Client::requestUsers() {
-	if (!connected) return;
-
-	json usersMsg;
-	usersMsg["type"] = "users";
-	usersMsg["room"] = currentRoom;
-
-	webSocket.send(usersMsg.dump());
-}
-
 void Client::requestRooms() {
     if (!connected) return;
 
@@ -207,14 +197,11 @@ void Client::handleCommand(const std::string& command) {
 
 		joinRoom(room, username);
 		ui->addSystemMessage("Joining room " + room + " as " + username);
-	} else if (cmd == "/users") {
-		requestUsers();
 	} else if (cmd == "/rooms") {
         requestRooms();
 	} else if (cmd == "/help") {
 		ui->addSystemMessage("Available commands:");
 		ui->addSystemMessage("/join <room> <username> - Join a room");
-		ui->addSystemMessage("/users - List users in current room");
 		ui->addSystemMessage("/rooms - Show available rooms on the server");
 		ui->addSystemMessage("/exit - Exit the application");
 		ui->addSystemMessage("/help - Show this help");
