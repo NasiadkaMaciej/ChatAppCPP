@@ -140,7 +140,7 @@ void Client::requestRooms() {
     if (!connected) return;
 
     json roomsMsg;
-    roomsMsg["type"] = "rooms";
+    roomsMsg["type"] = "getRoomList";
     
     webSocket.send(roomsMsg.dump());
 }
@@ -163,17 +163,21 @@ void Client::run() {
 
 	// Main UI loop
 	ui->run([this](const std::string& input) { handleMessage(input); });
+
+	// Stop the WebSocket before destroying the UI
+	webSocket.stop();
+    std::this_thread::sleep_for(std::chrono::milliseconds(100));
 }
 
-void Client::handleMessage(const std::string& input) {
+void Client::handleMessage(const std::string& message) {
 	// Check if this is a command
-	if (!input.empty() && input[0] == '/') {
-		handleCommand(input);
+	if (!message.empty() && message[0] == '/') {
+		handleCommand(message);
 		return;
 	} else {
 		// Regular message - send to current room
 		if (!currentRoom.empty() && !username.empty()) {
-			json msgJson = { { "type", "sendMessage" }, { "data", input } };
+			json msgJson = { { "type", "sendMessage" }, { "data", message } };
 			webSocket.send(msgJson.dump());
 		} else {
 			ui->addSystemMessage("You must join a room first: /join <room> <username>");

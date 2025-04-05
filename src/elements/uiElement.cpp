@@ -10,11 +10,6 @@ UIElement::UIElement(int height, int width, int startY, int startX)
 	win = newwin(height, width, startY, startX);
 }
 
-UIElement::~UIElement() {
-	if (win) delwin(win);
-	win = nullptr;
-}
-
 void UIElement::setNeedRedraw(bool value) {
 	needRedraw = value;
 }

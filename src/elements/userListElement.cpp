@@ -9,10 +9,6 @@ UserListElement::UserListElement(int height, int width, int startY, int startX)
 	needRedraw = true;
 }
 
-UserListElement::~UserListElement() {
-	if (win) delwin(win);
-}
-
 void UserListElement::draw() {
 	if (!win) return; // Safety check
 

@@ -1,4 +1,4 @@
-# NewChat Client
+# C++ Chat Client
 
 A simple WebSocket-based chat client in C++ with an ncurses interface. Compatible with [JS ChatApp](https://github.com/NasiadkaMaciej/ChatApp).
 ![App screenshot](https://nasiadka.pl/projects/CPPChat/chat.png)

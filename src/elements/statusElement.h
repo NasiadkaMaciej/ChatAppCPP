@@ -7,7 +7,6 @@
 class StatusElement : public UIElement {
   public:
     StatusElement(int height, int width, int startY, int startX);
-    ~StatusElement();
 
     void draw() override;
     void refresh() override;

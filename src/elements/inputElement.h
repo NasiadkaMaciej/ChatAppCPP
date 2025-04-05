@@ -8,7 +8,6 @@
 class InputElement : public UIElement {
   public:
     InputElement(int height, int width, int startY, int startX);
-    ~InputElement();
 
     void draw() override;
     void refresh() override;

@@ -8,7 +8,6 @@
 class ChatElement : public UIElement {
   public:
     ChatElement(int height, int width, int startY, int startX);
-    ~ChatElement();
 
     void draw() override;
     void refresh() override;

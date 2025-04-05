@@ -7,10 +7,6 @@ StatusElement::StatusElement(int height, int width, int startY, int startX)
 	draw();
 }
 
-StatusElement::~StatusElement() {
-	if (win) delwin(win);
-}
-
 void StatusElement::draw() {
 	if (!win) return;
 

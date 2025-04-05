@@ -8,7 +8,6 @@
 class UserListElement : public UIElement {
   public:
     UserListElement(int height, int width, int startY, int startX);
-    ~UserListElement();
 
     void draw() override;
     void refresh() override;

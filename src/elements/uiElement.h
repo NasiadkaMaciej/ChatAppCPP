@@ -4,7 +4,6 @@
 class UIElement {
   public:
 	UIElement(int height, int width, int startY, int startX);
-	virtual ~UIElement();
 
 	// Draw the UI element
 	virtual void draw() = 0;

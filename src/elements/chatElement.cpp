@@ -9,10 +9,6 @@ ChatElement::ChatElement(int height, int width, int startY, int startX)
     draw();
 }
 
-ChatElement::~ChatElement() {
-    if (win) delwin(win);
-}
-
 void ChatElement::draw() {
     if (!win) return;
 

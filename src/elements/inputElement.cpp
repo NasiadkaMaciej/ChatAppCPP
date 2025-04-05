@@ -8,10 +8,6 @@ InputElement::InputElement(int height, int width, int startY, int startX)
 	draw();
 }
 
-InputElement::~InputElement() {
-	if (win) delwin(win);
-}
-
 void InputElement::draw() {
 	werase(win);
 	mvwprintw(win, 0, 0, "> %s", inputBuffer.c_str());
