@@ -42,8 +42,7 @@ void UI::setupWindows(bool initialSetup) {
 
 	if (initialSetup) {
 		chatElement = std::make_unique<ChatElement>(chatHeight, chatWidth, 0, 0);
-		userListElement =
-		  std::make_unique<UserListElement>(userListHeight, userListWidth, 0, chatWidth);
+		userListElement = std::make_unique<UserListElement>(userListHeight, userListWidth, 0, chatWidth);
 		inputElement = std::make_unique<InputElement>(inputHeight, inputWidth, maxY - 2, 0);
 		statusElement = std::make_unique<StatusElement>(statusHeight, maxX, maxY - 1, 0);
 
@@ -197,6 +196,10 @@ void UI::showStatus(const std::string& status) {
 
 bool UI::isOnBottom() const {
 	return chatElement->isOnBottom();
+}
+
+void UI::updateRoomName(const std::string& roomName) {
+	chatElement->setRoomName(roomName);
 }
 
 void UI::cleanup() {

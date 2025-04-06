@@ -1,5 +1,12 @@
 CXX = g++
-CXXFLAGS = -std=c++17 -Wall -Wextra
+
+DEBUG = TRUE
+ifeq ($(DEBUG), TRUE)
+    CXXFLAGS = -std=c++17 -Wall -Wextra -g -O0 -DDEBUG
+else
+    CXXFLAGS = -std=c++17 -Wall -Wextra -O3
+endif
+
 LDFLAGS = -lixwebsocket -lz -lpthread -lssl -lcrypto -lncurses
 
 # Directory structure

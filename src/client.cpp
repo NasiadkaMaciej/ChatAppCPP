@@ -127,22 +127,22 @@ void Client::joinRoom(const std::string& roomName, const std::string& username) 
 
 	this->username = username;
 	currentRoom = roomName;
+	ui->updateRoomName(roomName);
 
 	// Send join room message
-	json joinMsg = { { "type", "joinRoom" },
-					 { "data", { { "username", username }, { "room", roomName } } } };
+	json joinMsg = { { "type", "joinRoom" }, { "data", { { "username", username }, { "room", roomName } } } };
 
 	webSocket.send(joinMsg.dump());
 	ui->showStatus("Joining room: " + roomName + " as " + username);
 }
 
 void Client::requestRooms() {
-    if (!connected) return;
+	if (!connected) return;
 
-    json roomsMsg;
-    roomsMsg["type"] = "getRoomList";
-    
-    webSocket.send(roomsMsg.dump());
+	json roomsMsg;
+	roomsMsg["type"] = "getRoomList";
+
+	webSocket.send(roomsMsg.dump());
 }
 
 void Client::run() {
@@ -166,7 +166,7 @@ void Client::run() {
 
 	// Stop the WebSocket before destroying the UI
 	webSocket.stop();
-    std::this_thread::sleep_for(std::chrono::milliseconds(100));
+	std::this_thread::sleep_for(std::chrono::milliseconds(100));
 }
 
 void Client::handleMessage(const std::string& message) {
@@ -201,9 +201,9 @@ void Client::handleCommand(const std::string& command) {
 
 		joinRoom(room, username);
 		ui->addSystemMessage("Joining room " + room + " as " + username);
-	} else if (cmd == "/rooms") {
-        requestRooms();
-	} else if (cmd == "/help") {
+	} else if (cmd == "/rooms")
+		requestRooms();
+	else if (cmd == "/help") {
 		ui->addSystemMessage("Available commands:");
 		ui->addSystemMessage("/join <room> <username> - Join a room");
 		ui->addSystemMessage("/rooms - Show available rooms on the server");

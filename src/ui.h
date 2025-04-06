@@ -37,6 +37,9 @@ class UI {
 	// Check if chat is scrolled to the bottom
 	bool isOnBottom() const;
 
+	// Update the room name in the chat window
+	void updateRoomName(const std::string& roomName);
+
 	// Clean up resources and exit
 	void cleanup();
 

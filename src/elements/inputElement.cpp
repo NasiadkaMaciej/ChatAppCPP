@@ -15,6 +15,7 @@ void InputElement::draw() {
 }
 
 void InputElement::refresh() {
+	if (!win) return;
 	wmove(win, 0, inputBuffer.length() + 2); // Position cursor after text
 	wrefresh(win);
 }
