@@ -44,14 +44,15 @@ void ChatElement::draw() {
 
 void ChatElement::refresh() {
 	if (!win) return;
-	if (win) wrefresh(win);
+	wrefresh(win);
 }
 
 void ChatElement::handleInput(int ch) {
-	if (ch == KEY_NPAGE) // Page Down
-		scrollPageDown();
-	else if (ch == KEY_PPAGE) // Page Up
-		scrollPageUp();
+	if (ch == KEY_DOWN) // Down Arrow and mouse scroll
+		scrollDown();
+	else if (ch == KEY_UP) // Up Arrow and mouse scroll
+		scrollUp();
+	refresh();
 }
 
 void ChatElement::addMessage(const std::string& message) {
@@ -76,18 +77,6 @@ void ChatElement::scrollDown() {
 		++scrollPosition;
 		needRedraw = true;
 	}
-}
-
-void ChatElement::scrollPageUp() {
-	scrollPosition = std::max(0, scrollPosition - (height - 2) / 2);
-	needRedraw = true;
-}
-
-void ChatElement::scrollPageDown() {
-	int visibleLines = height - 2;
-	int maxScroll = std::max(0, static_cast<int>(messages.size()) - visibleLines);
-	scrollPosition = std::min(maxScroll, scrollPosition + (height - 2) / 2);
-	needRedraw = true;
 }
 
 bool ChatElement::isOnBottom() const {

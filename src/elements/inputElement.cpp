@@ -4,6 +4,7 @@ InputElement::InputElement(int height, int width, int startY, int startX)
   : UIElement(height, width, startY, startX) {
 
 	win = newwin(height, width, startY, startX);
+	keypad(win, TRUE);
 	wtimeout(win, 50);
 	draw();
 }

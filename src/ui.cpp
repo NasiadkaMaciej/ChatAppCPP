@@ -95,12 +95,12 @@ std::string UI::handleInput() {
 	} else if (ch == KEY_RESIZE) {
 		// Handle terminal resize
 		handleResize();
-	} else {
-		// Let input element handle the character
-		inputElement->handleInput(ch);
-
-		// Let chat element handle navigation keys
+	} else if (ch == KEY_UP || ch == KEY_DOWN) {
+		// Direct navigation keys to chat element for scrolling
 		chatElement->handleInput(ch);
+	} else {
+		// Let input element handle other characters
+		inputElement->handleInput(ch);
 	}
 
 	return result;
