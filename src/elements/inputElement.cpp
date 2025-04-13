@@ -1,7 +1,9 @@
 #include "inputElement.h"
+#include <algorithm>
 
 InputElement::InputElement(int height, int width, int startY, int startX)
-  : UIElement(height, width, startY, startX) {
+  : UIElement(height, width, startY, startX)
+  , cursorPos(0) {
 
 	win = newwin(height, width, startY, startX);
 	keypad(win, TRUE);
@@ -17,7 +19,7 @@ void InputElement::draw() {
 
 void InputElement::refresh() {
 	if (!win) return;
-	wmove(win, 0, inputBuffer.length() + 2); // Position cursor after text
+	wmove(win, 0, cursorPos + 2); // +2 for "> " prompt
 	wrefresh(win);
 }
 
@@ -25,14 +27,36 @@ void InputElement::handleInput(int ch) {
 	bool changed = false;
 
 	if (ch == KEY_BACKSPACE || ch == 127 || ch == '\b') {
-		// Delete last character
-		if (!inputBuffer.empty()) {
-			inputBuffer.pop_back();
+		if (cursorPos > 0) {
+			inputBuffer.erase(cursorPos - 1, 1);
+			cursorPos--;
 			changed = true;
 		}
+	} else if (ch == KEY_DC) { // Delete key
+		if (cursorPos < inputBuffer.length()) {
+			inputBuffer.erase(cursorPos, 1);
+			changed = true;
+		}
+	} else if (ch == KEY_LEFT) { // Left Arrow
+		if (cursorPos > 0) {
+			cursorPos--;
+			changed = true;
+		}
+	} else if (ch == KEY_RIGHT) { // Right Arrow
+		if (cursorPos < inputBuffer.length()) {
+			cursorPos++;
+			changed = true;
+		}
+	} else if (ch == KEY_HOME) { // Home key
+		cursorPos = 0;
+		changed = true;
+	} else if (ch == KEY_END) { // End key
+		cursorPos = inputBuffer.length();
+		changed = true;
 	} else if (ch >= 32 && ch <= 126) {
-		// Add printable characters to input buffer
-		inputBuffer += static_cast<char>(ch);
+		// Insert character at cursor position
+		inputBuffer.insert(cursorPos, 1, static_cast<char>(ch));
+		cursorPos++;
 		changed = true;
 	}
 
@@ -45,5 +69,6 @@ std::string InputElement::getInput() const {
 
 void InputElement::clearInput() {
 	inputBuffer.clear();
+	cursorPos = 0;
 	needRedraw = true;
 }

@@ -5,11 +5,12 @@ A simple WebSocket-based chat client in C++ with an ncurses interface. Compatibl
 
 ## Features
 - Terminal-based UI with ncurses
-- Split-screen layout with chat messages, user list, and input areas
+- Split-screen layout with chat messages, user list and input area
 - Join or create chat rooms
 - See active users in rooms
 - Message timestamps
-- System messages for connection events
+- Chat history scrolling
+- Resizable interface that adapts to terminal dimensions
 
 ## Building
 
@@ -36,3 +37,8 @@ sudo make install
 - `/help` - Show available commands
 - `/rooms` - Show available rooms on the server
 - `/exit` - Exit the application
+
+## UI Navigation
+- Arrow keys to scroll through chat history
+- Type messages in the input area at the bottom
+- Status information displayed in the bottom status bar
