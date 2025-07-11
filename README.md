@@ -1,7 +1,7 @@
 # C++ Chat Client
 
 A simple WebSocket-based chat client in C++ with an ncurses interface. Compatible with [JS ChatApp](https://github.com/NasiadkaMaciej/ChatApp).
-![App screenshot](https://nasiadka.pl/projects/CPPChat/chat.png)
+![App screenshot](https://nasiadka.pl/project/cpp-chat-client/chat.png)
 
 ## Features
 - Terminal-based UI with ncurses

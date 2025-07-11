@@ -1,7 +1,5 @@
 Docs 
 Server in C++?
-Allow other servers?
-Message handlers
 Improve status messages
 Resizable panels
 Save username?
