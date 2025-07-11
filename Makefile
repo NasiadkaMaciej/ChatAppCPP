@@ -7,7 +7,7 @@ else
     CXXFLAGS = -std=c++17 -Wall -Wextra -O3
 endif
 
-LDFLAGS = -lixwebsocket -lz -lpthread -lssl -lcrypto -lncurses
+LDFLAGS = -lixwebsocket -lz -lpthread -lssl -lcrypto -lncursesw
 
 # Directory structure
 SRC_DIR = src

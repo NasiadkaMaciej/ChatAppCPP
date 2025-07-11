@@ -11,13 +11,13 @@ class InputElement : public UIElement {
 
 	void draw() override;
 	void refresh() override;
-	void handleInput(int ch);
+	void handleInput(wint_t ch, bool isSpecialKey);
 
 	std::string getInput() const;
 
 	void clearInput();
 
   private:
-	std::string inputBuffer;
+	std::wstring inputBuffer;
 	size_t cursorPos;
 };

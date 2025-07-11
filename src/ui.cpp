@@ -84,23 +84,36 @@ void UI::initWindows() {
 }
 
 std::string UI::handleInput() {
-	int ch = wgetch(inputElement->getWindow());
+	wint_t ch;
+	int result_get = wget_wch(inputElement->getWindow(), &ch);
 	std::string result;
 
-	if (ch == ERR) return result;
+	if (result_get == ERR) return result;
 
 	if (ch == KEY_ENTER || ch == '\n' || ch == '\r') {
 		// Submit current input
 		result = inputElement->getInput();
-	} else if (ch == KEY_RESIZE) {
-		// Handle terminal resize
-		handleResize();
-	} else if (ch == KEY_UP || ch == KEY_DOWN) {
-		// Direct navigation keys to chat element for scrolling
-		chatElement->handleInput(ch);
+		inputElement->clearInput();
+		return result;
+	}
+
+	if (result_get == KEY_CODE_YES) {
+		if (ch == KEY_ENTER || ch == '\n' || ch == '\r') {
+			// Submit current input
+			result = inputElement->getInput();
+		} else if (ch == KEY_RESIZE) {
+			// Handle terminal resize
+			handleResize();
+		} else if (ch == KEY_UP || ch == KEY_DOWN) {
+			// Direct navigation keys to chat element for scrolling
+			chatElement->handleInput(ch);
+		} else {
+			// Let input element handle other special keys
+			inputElement->handleInput(ch, true); // It's a special key
+		}
 	} else {
-		// Let input element handle other characters
-		inputElement->handleInput(ch);
+		// Regular character input
+		inputElement->handleInput(ch, false); // It's a regular character
 	}
 
 	return result;
