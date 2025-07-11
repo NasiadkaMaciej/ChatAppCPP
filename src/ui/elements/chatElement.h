@@ -26,5 +26,5 @@ class ChatElement : public UIElement {
   private:
 	std::vector<std::string> messages;
 	int scrollPosition;
-	std::string roomName; // Add this to store the room name
+	std::string roomName;
 };

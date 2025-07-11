@@ -26,7 +26,7 @@ void InputElement::refresh() {
 	wrefresh(win);
 }
 
-void InputElement::handleInput(wint_t ch, bool isSpecialKey) {
+bool InputElement::processInput(wint_t ch, bool isSpecialKey) {
 	bool changed = false;
 
 	if (isSpecialKey) {
@@ -66,6 +66,7 @@ void InputElement::handleInput(wint_t ch, bool isSpecialKey) {
 	}
 
 	if (changed) needRedraw = true;
+	return changed;
 }
 
 std::string InputElement::getInput() const {
@@ -84,4 +85,8 @@ void InputElement::clearInput() {
 	inputBuffer.clear();
 	cursorPos = 0;
 	needRedraw = true;
+}
+
+void InputElement::setInputCallback(InputCallback callback) {
+	onInputSubmitted = callback;
 }

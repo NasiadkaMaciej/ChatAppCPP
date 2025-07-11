@@ -5,3 +5,5 @@ Message handlers
 Improve status messages
 Resizable panels
 Save username?
+When not in room, display rooms in users panel
+Add customizable colors

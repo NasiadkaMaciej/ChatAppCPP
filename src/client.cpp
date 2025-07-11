@@ -1,16 +1,44 @@
 #include "client.h"
 #include <nlohmann/json.hpp>
-#include <sstream>
 
 using json = nlohmann::json;
 
 Client::Client(const std::string& url)
   : url(url)
   , connected(false)
-  , ui(std::make_unique<UI>()) {}
+  , ui(std::make_unique<UI>())
+  , commandProcessor(std::make_unique<CommandProcessor>()) {
+	initCommandHandlers();
+}
 
 Client::~Client() {
 	webSocket.stop();
+}
+
+void Client::initCommandHandlers() {
+	commandProcessor->registerCommand("/join", [this](const std::string& args) {
+		std::istringstream iss(args);
+		std::string room, username;
+		iss >> room >> username;
+
+		if (room.empty() || username.empty()) {
+			ui->addSystemMessage("Usage: /join <room> <username>");
+			return;
+		}
+
+		joinRoom(room, username);
+		ui->addSystemMessage("Joining room " + room + " as " + username);
+	});
+
+	commandProcessor->registerCommand("/rooms", [this](const std::string&) { requestRooms(); });
+
+	commandProcessor->registerCommand("/help", [this](const std::string&) {
+		ui->addSystemMessage("Available commands:");
+		ui->addSystemMessage("/join <room> <username> - Join a room");
+		ui->addSystemMessage("/rooms - Show available rooms on the server");
+		ui->addSystemMessage("/exit - Exit the application");
+		ui->addSystemMessage("/help - Show this help");
+	});
 }
 
 bool Client::connect() {
@@ -19,8 +47,7 @@ bool Client::connect() {
 	webSocket.setUrl(url);
 
 	// Set up the message handler
-	webSocket.setOnMessageCallback(
-	  [this](const ix::WebSocketMessagePtr& msg) { handleWebSocketMessage(msg); });
+	setupWebSocketCallbacks();
 
 	webSocket.start();
 
@@ -36,7 +63,11 @@ bool Client::connect() {
 	return false;
 }
 
-// Add a new method to handle WebSocket messages
+void Client::setupWebSocketCallbacks() {
+	webSocket.setOnMessageCallback(
+	  [this](const ix::WebSocketMessagePtr& msg) { handleWebSocketMessage(msg); });
+}
+
 void Client::handleWebSocketMessage(const ix::WebSocketMessagePtr& msg) {
 	if (msg->type == ix::WebSocketMessageType::Message) {
 		try {
@@ -80,27 +111,25 @@ void Client::handleWebSocketMessage(const ix::WebSocketMessagePtr& msg) {
 					std::vector<std::string> users;
 					for (auto& user : received["data"])
 						users.push_back(user);
-					ui->updateUsers(users);
+					handleUserListUpdate(users);
 				}
 			}
 		} catch (const std::exception& e) {
 			ui->addSystemMessage("Error parsing message: " + std::string(e.what()));
 		}
 	} else if (msg->type == ix::WebSocketMessageType::Open) {
-		ui->addSystemMessage("Connected to server");
+		handleSystemEvent("Connected to server");
 	} else if (msg->type == ix::WebSocketMessageType::Error) {
-		ui->addSystemMessage("Connection error: " + msg->errorInfo.reason);
+		handleSystemEvent("Connection error: " + msg->errorInfo.reason);
 		connected = false;
 	} else if (msg->type == ix::WebSocketMessageType::Close) {
-		ui->addSystemMessage("Connection closed");
+		handleSystemEvent("Connection closed");
 		connected = false;
 	}
 }
 
 bool Client::sendMessage(const std::string& message) {
 	if (!connected) return false;
-
-	json msgJson;
 
 	// Check if it's a command
 	if (message[0] == '/') {
@@ -109,10 +138,9 @@ bool Client::sendMessage(const std::string& message) {
 	}
 
 	// Regular message
-	msgJson["type"] = "message";
-	msgJson["room"] = currentRoom;
-	msgJson["username"] = username;
-	msgJson["text"] = message;
+	json msgJson;
+	msgJson["type"] = "sendMessage";
+	msgJson["data"] = message;
 
 	webSocket.send(msgJson.dump());
 	return true;
@@ -157,15 +185,10 @@ void Client::run() {
 		return;
 	}
 
-	ui->showStatus("Connected! Please enter your username and room: /join <room> "
-				   "<username>");
+	ui->showStatus("Connected! Please enter your username and room: /join <room> <username>");
 
 	// Main UI loop
 	ui->run([this](const std::string& input) { handleMessage(input); });
-
-	// Stop the WebSocket before destroying the UI
-	webSocket.stop();
-	std::this_thread::sleep_for(std::chrono::milliseconds(100));
 }
 
 void Client::handleMessage(const std::string& message) {
@@ -175,42 +198,36 @@ void Client::handleMessage(const std::string& message) {
 		return;
 	} else {
 		// Regular message - send to current room
-		if (!currentRoom.empty() && !username.empty()) {
-			json msgJson = { { "type", "sendMessage" }, { "data", message } };
-			webSocket.send(msgJson.dump());
-		} else {
+		if (!currentRoom.empty() && !username.empty())
+			sendMessage(message);
+		else
 			ui->addSystemMessage("You must join a room first: /join <room> <username>");
-		}
 	}
 }
 
 void Client::handleCommand(const std::string& command) {
-	std::istringstream iss(command);
-	std::string cmd;
-	iss >> cmd;
-
-	if (cmd == "/join") {
-		std::string room, username;
-		iss >> room >> username;
-
-		if (room.empty() || username.empty()) {
-			ui->addSystemMessage("Usage: /join <room> <username>");
-			return;
-		}
-
-		joinRoom(room, username);
-		ui->addSystemMessage("Joining room " + room + " as " + username);
-	} else if (cmd == "/rooms")
-		requestRooms();
-	else if (cmd == "/help") {
-		ui->addSystemMessage("Available commands:");
-		ui->addSystemMessage("/join <room> <username> - Join a room");
-		ui->addSystemMessage("/rooms - Show available rooms on the server");
-		ui->addSystemMessage("/exit - Exit the application");
-		ui->addSystemMessage("/help - Show this help");
-	} else if (cmd == "/exit") {
+	if (command == "/exit")
 		// This will be handled in the UI's run method
-	} else {
-		ui->addSystemMessage("Unknown command: " + cmd);
+		return;
+
+	// Extract command and arguments
+	std::string cmd = command;
+	std::string args;
+
+	size_t spacePos = command.find(' ');
+	if (spacePos != std::string::npos) {
+		cmd = command.substr(0, spacePos);
+		args = command.substr(spacePos + 1);
 	}
+
+	// Process via command processor
+	if (!commandProcessor->processCommand(cmd, args)) ui->addSystemMessage("Unknown command: " + cmd);
+}
+
+void Client::handleSystemEvent(const std::string& event) {
+	ui->addSystemMessage(event);
+}
+
+void Client::handleUserListUpdate(const std::vector<std::string>& users) {
+	ui->updateUsers(users);
 }

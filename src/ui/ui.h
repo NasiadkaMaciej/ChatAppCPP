@@ -1,12 +1,7 @@
 #pragma once
 
-#include "elements/chatElement.h"
-#include "elements/inputElement.h"
-#include "elements/statusElement.h"
-#include "elements/uiElement.h"
-#include "elements/userListElement.h"
+#include "uiManager.h"
 #include <functional>
-#include <list>
 #include <memory>
 #include <string>
 #include <vector>
@@ -44,33 +39,12 @@ class UI {
 	void cleanup();
 
   private:
-	// UI elements
-	std::unique_ptr<ChatElement> chatElement;
-	std::unique_ptr<InputElement> inputElement;
-	std::unique_ptr<UserListElement> userListElement;
-	std::unique_ptr<StatusElement> statusElement;
+	std::unique_ptr<UIManager> uiManager;
+	std::string statusMessage;
 
-	// List of all elements for easier iteration
-	std::list<UIElement*> elements;
-
-	// Window dimensions and positions
-	int chatHeight, chatWidth;
-	int inputHeight, inputWidth;
-	int userListHeight, userListWidth;
-	int statusHeight;
-
-	// Initialize windows
-	void initWindows();
-
-	// Resize all windows
-	void setupWindows(bool initialSetup);
-
-	// Handle keyboard input
+	// Input handling
 	std::string handleInput();
 
-	// Resize handler
+	// Window management
 	void handleResize();
-
-	// Current status message
-	std::string statusMessage;
 };
